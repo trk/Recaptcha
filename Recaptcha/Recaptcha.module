@@ -22,8 +22,8 @@ class Recaptcha extends WireData implements Module, ConfigurableModule {
     {
 
         return array(
-            'title' => 'Recaptcha Module for reCAPTCHA v2',
-            'summary' => __('ReCAPTCHA is a free CAPTCHA service that protect websites from spam and abuse.'),
+            'title' => 'Recaptcha Module',
+            'summary' => __('ReCAPTCHA v2 is a free CAPTCHA service that protect websites from spam and abuse.'),
             'version' => 1,
             'author' => 'İskender TOTOĞLU | @ukyo(community), @trk (Github), http://altivebir.com.tr',
             'href' => 'https://github.com/trk/Recaptcha',
