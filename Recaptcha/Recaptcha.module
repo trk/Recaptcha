@@ -1,0 +1,177 @@
+<?php
+
+/**
+ * Class Recaptcha
+ *
+ * @author          : İskender TOTOĞLU, @ukyo (community), @trk (Github)
+ * @website         : http://altivebir.com.tr
+ * @projectWebsite  : https://github.com/trk/Recaptcha
+ */
+class Recaptcha extends WireData implements Module, ConfigurableModule {
+
+    const CLIENT_API = 'https://www.google.com/recaptcha/api.js';
+    const VERIFY_URL = 'https://www.google.com/recaptcha/api/siteverify';
+
+    /**
+     * getModuleInfo is a module required by all modules to tell ProcessWire about them
+     *
+     * @return array
+     *
+     */
+    public static function getModuleInfo()
+    {
+
+        return array(
+            'title' => 'Recaptcha Module for reCAPTCHA v2',
+            'summary' => __('ReCAPTCHA is a free CAPTCHA service that protect websites from spam and abuse.'),
+            'version' => 1,
+            'author' => 'İskender TOTOĞLU | @ukyo(community), @trk (Github), http://altivebir.com.tr',
+            'href' => 'https://github.com/trk/Recaptcha',
+            'icon' => 'check-square-o',
+            'singular' => FALSE,
+            'autoload' => FALSE
+        );
+    }
+
+    /**
+     * Initialize the module
+     *
+     */
+    public function init() {}
+
+    /**
+     * Default settings configured with this module
+     *
+     */
+    static $defaultSettings = array(
+        'siteKey' => '',
+        'secretKey' => '',
+        'themeDark' => 0,
+        'typeAudio' => 0
+    );
+
+    /**
+     * Construct and init default settings
+     *
+     */
+    public function __construct() {
+        foreach(self::$defaultSettings as $key => $value) $this->set($key, $value);
+    }
+
+    /**
+     * Render Captcha Output
+     *
+     * @return string
+     */
+    public function render($attributes = [], $lang = null)
+    {
+        $attributes['data-sitekey'] = $this->siteKey;
+
+        if($this->themeDark) $attributes['data-theme'] = 'dark';
+        if($this->typeAudio) $attributes['data-type'] = 'audio';
+
+        $html = '<script src="'.$this->getJsLink($lang).'" async defer></script>'."\n";
+        $html .= '<div class="g-recaptcha"'.$this->buildAttributes($attributes).'></div>';
+        return $html;
+    }
+    /**
+     * Verify Response
+     *
+     * @param string $response
+     * @param string $clientIp
+     * @return bool
+     */
+    public function verifyResponse($response, $clientIp = null)
+    {
+        if (empty($response)) return false;
+        $response = $this->sendRequestVerify([
+            'secret' => $this->secretKey,
+            'response' => $response,
+            'remoteip' => $clientIp
+        ]);
+        return isset($response['success']) && $response['success'] === true;
+    }
+
+    /**
+     * Get JS Link
+     *
+     * @return string
+     */
+    public function getJsLink($lang = null)
+    {
+        return $lang ? static::CLIENT_API.'?hl='.$lang : static::CLIENT_API;
+    }
+
+    /**
+     * Send Request Verify
+     *
+     * @param array $query
+     * @return array
+     */
+    protected function sendRequestVerify(array $query = [])
+    {
+        $link = static::VERIFY_URL.'?'.http_build_query($query);
+        $response = file_get_contents($link);
+        return json_decode($response, true);
+    }
+    /**
+     * Build Attributes
+     *
+     * @param array $attributes
+     * @return string
+     */
+    protected function buildAttributes(array $attributes)
+    {
+        $html = [];
+        foreach ($attributes as $key => $value)
+        {
+            $html[] = $key.'="'.$value.'"';
+        }
+        return count($html) ? ' '.implode(' ', $html) : '';
+    }
+
+    /**
+     * Configure the module
+     */
+    static public function getModuleConfigInputfields(array $data) {
+
+        $fields = new InputfieldWrapper();
+
+        $modules = wire('modules');
+
+        $data = array_merge(self::$defaultSettings, $data);
+
+        $f = $modules->get("InputfieldText");
+        $f->name = "siteKey";
+        $f->label = __("Site Key");
+        $f->value = $data['siteKey'];
+        $f->description = __("Register API keys at https://www.google.com/recaptcha/admin");
+        $fields->add($f);
+
+        $f = $modules->get("InputfieldText");
+        $f->name = "secretKey";
+        $f->label = __("Secret Key");
+        $f->value = $data['secretKey'];
+        $f->description = __("For communication between your site and Google. Be sure to keep it a secret.");
+        $fields->add($f);
+
+        $f = $modules->get("InputfieldCheckbox");
+        $f->name = "themeDark";
+        $f->label = __("Use Dark Theme ?");
+        $f->description = __("The color theme of the widget. default: light");
+        $f->value = 0;
+        $f->attr('checked', empty($data['themeDark']) ? '' : 'checked');
+        $fields->add($f);
+
+        $f = $modules->get("InputfieldCheckbox");
+        $f->name = "typeAudio";
+        $f->label = __("Use Type Audio?");
+        $f->description = __("The type of CAPTCHA to serve. default: image");
+        $f->value = 0;
+        $f->attr('checked', empty($data['typeAudio']) ? '' : 'checked');
+        $fields->add($f);
+
+        return $fields;
+
+    }
+}
