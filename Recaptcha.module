@@ -63,7 +63,7 @@ class Recaptcha extends WireData implements Module, ConfigurableModule {
      *
      * @return string
      */
-    public function render($attributes = [], $lang = null)
+    public function render($lang = null, $attributes = array())
     {
         $attributes['data-sitekey'] = $this->siteKey;
 
