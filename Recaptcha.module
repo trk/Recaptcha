@@ -24,7 +24,7 @@ class Recaptcha extends WireData implements Module, ConfigurableModule {
         return array(
             'title' => 'Recaptcha Module',
             'summary' => __('ReCAPTCHA v2 is a free CAPTCHA service that protect websites from spam and abuse.'),
-            'version' => 1,
+            'version' => 3,
             'author' => 'İskender TOTOĞLU | @ukyo(community), @trk (Github), http://altivebir.com.tr',
             'href' => 'https://github.com/trk/Recaptcha',
             'icon' => 'check-square-o',
@@ -74,6 +74,27 @@ class Recaptcha extends WireData implements Module, ConfigurableModule {
         $html .= '<div class="g-recaptcha"'.$this->buildAttributes($attributes).'></div>';
         return $html;
     }
+
+    // Function to get the client IP address
+    public function get_client_ip() {
+        $ipaddress = '';
+        if ($_SERVER['HTTP_CLIENT_IP'])
+            $ipaddress = $_SERVER['HTTP_CLIENT_IP'];
+        else if($_SERVER['HTTP_X_FORWARDED_FOR'])
+            $ipaddress = $_SERVER['HTTP_X_FORWARDED_FOR'];
+        else if($_SERVER['HTTP_X_FORWARDED'])
+            $ipaddress = $_SERVER['HTTP_X_FORWARDED'];
+        else if($_SERVER['HTTP_FORWARDED_FOR'])
+            $ipaddress = $_SERVER['HTTP_FORWARDED_FOR'];
+        else if($_SERVER['HTTP_FORWARDED'])
+            $ipaddress = $_SERVER['HTTP_FORWARDED'];
+        else if($_SERVER['REMOTE_ADDR'])
+            $ipaddress = $_SERVER['REMOTE_ADDR'];
+        else
+            $ipaddress = 'UNKNOWN';
+        return $ipaddress;
+    }
+
     /**
      * Verify Response
      *
@@ -84,6 +105,7 @@ class Recaptcha extends WireData implements Module, ConfigurableModule {
     public function verifyResponse($response, $clientIp = null)
     {
         if (empty($response)) return false;
+        if(is_null($clientIp)) $clientIp = $this->get_client_ip();
         $response = $this->sendRequestVerify([
             'secret' => $this->secretKey,
             'response' => $response,
@@ -110,8 +132,8 @@ class Recaptcha extends WireData implements Module, ConfigurableModule {
      */
     protected function sendRequestVerify(array $query = [])
     {
-        $link = static::VERIFY_URL.'?'.http_build_query($query);
-        $response = file_get_contents($link);
+        $http = new WireHttp();
+        $response = $http->get(static::VERIFY_URL.'?'.http_build_query($query));
         return json_decode($response, true);
     }
     /**
